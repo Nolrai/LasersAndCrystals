@@ -49,8 +49,7 @@ extra-source-files: CHANGELOG.md
 
 library
     -- Modules exported by the library.
-    exposed-modules:  Cellular.Torus
-                    , Cellular.Cell
+    exposed-modules:  GameObject
 
     -- Modules included in this library but not exported.
     -- other-modules:  
@@ -67,6 +66,8 @@ library
                     , vector
                     , relude
                     , gloss
+                    , hashable
+                    , QuickCheck ^>=2.14.2
 
     -- Directories containing source files.
     hs-source-dirs:   src
@@ -88,7 +89,7 @@ executable LasersAndCrystals
     build-depends:
         base ^>=4.14.3.0,
         LasersAndCrystals,
-        gloss
+        gloss,
 
     -- Directories containing source files.
     hs-source-dirs:   app
