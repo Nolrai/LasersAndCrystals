@@ -9,4 +9,4 @@ main =
 
 displayPicture :: String -> (Int, Int) -> Picture -> IO ()
 displayPicture title (width, height) =
-  display (InWindow title (width, height) (0, 0)) black
+  display (InWindow title (width, height) (0, 0)) (greyN 0.5)

@@ -11,7 +11,7 @@
 module GameObject (GameObject, position, orientation, shape, GameWorld, drawGameWorld, testWorld, makeShine, drawGameShine) where
 
 import Control.Lens (Lens', makeLenses, (^.), Iso', iso, (#))
-import Data.HashSet (HashSet, singleton)
+import Data.HashSet (HashSet, singleton, fromList)
 import Data.Hashable (Hashable)
 import GHC.Generics ( Generic )
 import Graphics.Gloss
@@ -24,54 +24,9 @@ import Data.Semigroup ((<>))
 
 data ObjectType
   = Source
+  | Mirror
   deriving stock (Eq, Show, Generic)
   deriving anyclass (Hashable)
-
-newtype Orientation = Orientation {_toV2 :: Complex Rational}
-  deriving stock (Eq, Show, Generic)
-  deriving anyclass (Hashable)
-
-makeLenses ''Orientation
-
-asDegrees :: Iso' Orientation Float
-asDegrees = iso to' from'
-  where
-    to' :: Orientation -> Float
-    to' (Orientation v) = phase' v * 180 / pi
-    from' :: Float -> Orientation
-    from' a = Orientation $ cis' (a * pi / 180)
-
-phase' :: Complex Rational -> Float
-phase' (a :+ b) = Complex.phase (realToFrac a :+ realToFrac b)
-
-cis' :: Float -> Complex Rational
-cis' theta = realToFrac (cos theta) :+ realToFrac (sin theta)
-
-instance Num Orientation where
-  (+) :: Orientation -> Orientation -> Orientation
-  (+) (Orientation (a :+ b)) (Orientation (c :+ d)) = Orientation
-    ((a * c - b * d) :+ (a * d + b * c))
-
-  (-) :: Orientation -> Orientation -> Orientation
-  (-) (Orientation (a :+ b)) (Orientation (c :+ d)) = Orientation
-    ((a * c + b * d) / (c * c + d * d) :+ (b * c - a * d) / (c * c + d * d))
-
-  (*) :: Orientation -> Orientation -> Orientation
-  (*) (Orientation a) (Orientation b) =
-      error "Orientation multiplication not defined."
-      -- Orientation (a ** b) ???
-
-  negate :: Orientation -> Orientation
-  negate (Orientation (a :+ b)) = Orientation (a :+ negate b)
-
-  abs :: Orientation -> Orientation
-  abs (Orientation (a :+ b)) = Orientation (abs a :+ abs b)
-
-  signum :: Orientation -> Orientation
-  signum (Orientation (a :+ b)) = Orientation (signum a :+ signum b)
-
-  fromInteger :: Integer -> Orientation
-  fromInteger a = asDegrees # fromInteger a
 
 -- | A game object is a position, velocity, and what type of object it is.
 data GameObject = GameObject
@@ -100,6 +55,9 @@ drawRawGameObject :: ObjectType -> Picture
 drawRawGameObject Source = color red $
   arcSolid 15 (-15) 10
 
+drawRawGameObject Mirror = color white $
+   rotate 180 $ rectangleUpperSolid 10 02
+
 type GameWorld = HashSet GameObject
 
 data GameShine = GameShine
@@ -112,7 +70,7 @@ data GameShine = GameShine
 makeLenses ''GameShine
 
 testWorld :: GameWorld
-testWorld = singleton (GameObject (0 :+ 0) 0 Source)
+testWorld = fromList [ GameObject (0 :+ 0) 0 Source, GameObject (100 :+ 0) northeast Mirror ]
 
 drawGameWorld :: GameWorld -> Picture
 drawGameWorld = foldMap drawGameObject
