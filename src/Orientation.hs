@@ -1,79 +1,99 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE TemplateHaskell #-}
 
--- An Orientation stores an angle as a complex number not equal to 0.
-
+-- An Orientation is point on the compass rose.
 module Orientation
-  ( Orientation,
+  ( Orientation (..),
     asDegrees,
-    east,
-    west,
-    north,
-    south,
-    northeast,
+    asRadians,
+    asUnitPoint,
+    asSquarePoint,
   )
 where
 
-newtype Orientation = Orientation {_toV2 :: Complex Rational}
-  deriving stock (Show, Generic)
+import Control.Lens
+import GHC.Float (asinDouble, asinFloat, double2Float)
+import GHC.Generics (Generic)
+import Graphics.Gloss (Point)
+import Relude.Container (Hashable)
+
+data Orientation
+  = East
+  | NorthEast
+  | North
+  | NorthWest
+  | West
+  | SouthWest
+  | South
+  | SouthEast
+  deriving stock (Eq, Show, Generic, Enum)
   deriving anyclass (Hashable)
 
-makeLenses ''Orientation
+toDegrees :: Orientation -> Float
+toDegrees East = 0
+toDegrees NorthEast = 45
+toDegrees North = 90
+toDegrees NorthWest = 135
+toDegrees West = 180
+toDegrees SouthWest = 225
+toDegrees South = 270
+toDegrees SouthEast = 315
 
-asDegrees :: Iso' Orientation Float
-asDegrees = iso to' from'
+fromDegrees :: Float -> Maybe Orientation
+fromDegrees f = fromDegrees' (round f)
+
+fromDegrees' :: Int -> Maybe Orientation
+fromDegrees' 0 = Just East
+fromDegrees' 45 = Just NorthEast
+fromDegrees' 90 = Just North
+fromDegrees' 135 = Just NorthWest
+fromDegrees' 180 = Just West
+fromDegrees' 225 = Just SouthWest
+fromDegrees' 270 = Just South
+fromDegrees' 315 = Just SouthEast
+fromDegrees' _ = Nothing
+
+asDegrees :: Prism' Float Orientation
+asDegrees = prism' toDegrees fromDegrees
+
+toRadians :: Orientation -> Float
+toRadians = (* (pi / 180)) . toDegrees
+
+fromRadians :: Float -> Maybe Orientation
+fromRadians = fromDegrees . (* (180 / pi))
+
+asRadians :: Prism' Float Orientation
+asRadians = prism' toRadians fromRadians
+
+toSquarePoint :: Orientation -> Point
+toSquarePoint East = (1, 0)
+toSquarePoint NorthEast = (1, 1)
+toSquarePoint North = (0, 1)
+toSquarePoint NorthWest = (-1, 1)
+toSquarePoint West = (-1, 0)
+toSquarePoint SouthWest = (-1, -1)
+toSquarePoint South = (0, -1)
+toSquarePoint SouthEast = (1, -1)
+
+normalizePoint :: Point -> Point
+normalizePoint (x, y) = (x / magnitude, y / magnitude)
   where
-    to' :: Orientation -> Float
-    to' (Orientation v) = phase' v * 180 / pi
-    from' :: Float -> Orientation
-    from' a = Orientation $ cis' (a * pi / 180)
+    magnitude = sqrt (x * x + y * y)
 
-phase' :: Complex Rational -> Float
-phase' (a :+ b) = Complex.phase (realToFrac a :+ realToFrac b)
+toUnitPoint :: Orientation -> Point
+toUnitPoint = normalizePoint . toSquarePoint
 
-cis' :: Float -> Complex Rational
-cis' theta = realToFrac (cos theta) :+ realToFrac (sin theta)
+fromPoint :: Point -> Maybe Orientation
+fromPoint (x, y) =
+  if magnitude == 0
+    then Nothing
+    else fromRadians $ asinFloat (y / magnitude)
+  where
+    magnitude = sqrt (x * x + y * y)
 
-instance Num Orientation where
-  (+) :: Orientation -> Orientation -> Orientation
-  (+) (Orientation (a :+ b)) (Orientation (c :+ d)) = Orientation
-    ((a * c - b * d) :+ (a * d + b * c))
+asUnitPoint :: Prism' Point Orientation
+asUnitPoint = prism' toUnitPoint fromPoint
 
-  (-) :: Orientation -> Orientation -> Orientation
-  (-) (Orientation (a :+ b)) (Orientation (c :+ d)) = Orientation
-    ((a * c + b * d) / (c * c + d * d) :+ (b * c - a * d) / (c * c + d * d))
-
-  (*) :: Orientation -> Orientation -> Orientation
-  (*) (Orientation a) (Orientation b) =
-      error "Orientation multiplication not defined."
-      -- Orientation (a ** b) ???
-
-  negate :: Orientation -> Orientation
-  negate (Orientation (a :+ b)) = Orientation (a :+ negate b)
-
-  abs :: Orientation -> Orientation
-  abs (Orientation (a :+ b)) = Orientation (abs a :+ abs b)
-
-  signum :: Orientation -> Orientation
-  signum (Orientation (a :+ b)) = Orientation (signum a :+ signum b)
-
-  fromInteger :: Integer -> Orientation
-  fromInteger a = asDegrees # fromInteger a
-
-east :: Orientation
-east = Orientation (1 :+ 0)
-
-west :: Orientation
-west = Orientation ((-1) :+ 0)
-
-north :: Orientation
-north = Orientation (0 :+ 1)
-
-south :: Orientation
-south = Orientation (0 :+ (-1))
-
-northeast :: Orientation
-northeast = Orientation (1 :+ 1)
+asSquarePoint :: Prism' Point Orientation
+asSquarePoint = prism' toSquarePoint fromPoint

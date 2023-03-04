@@ -50,6 +50,7 @@ extra-source-files: CHANGELOG.md
 library
     -- Modules exported by the library.
     exposed-modules:  GameObject
+                    , Orientation
 
     -- Modules included in this library but not exported.
     -- other-modules:  
@@ -58,7 +59,7 @@ library
     -- other-extensions:
 
     -- Other library packages from which modules are imported.
-    build-depends:    base ^>=4.14.3.0
+    build-depends:    base ^>= 4.16.4.0
                     , lens
                     , array
                     , comonad
@@ -67,7 +68,6 @@ library
                     , relude
                     , gloss
                     , hashable
-                    , QuickCheck ^>=2.14.2
 
     -- Directories containing source files.
     hs-source-dirs:   src
@@ -87,7 +87,7 @@ executable LasersAndCrystals
 
     -- Other library packages from which modules are imported.
     build-depends:
-        base ^>=4.14.3.0,
+        base ^>=4.16.4.0,
         LasersAndCrystals,
         gloss,
 
@@ -110,12 +110,14 @@ test-suite LasersAndCrystals-test
     -- The entrypoint to the test suite.
     main-is:          Spec.hs
 
-    other-modules:    Cellular.TorusSpec
+    other-modules:    GameObjectSpec
+                    , OrientationSpec
+                    , TestUtils
 
     -- Test dependencies.
-    build-depends:    base ^>=4.14.3.0
-                    , hspec ^>=2.10.6
-                    , QuickCheck ^>=2.14.2
+    build-depends:    base ^>=4.16.4.0
+                    , hspec
+                    , QuickCheck
                     , LasersAndCrystals
                     , relude
                     , lens
