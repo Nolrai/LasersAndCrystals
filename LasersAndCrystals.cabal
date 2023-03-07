@@ -51,6 +51,8 @@ library
     -- Modules exported by the library.
     exposed-modules:  GameObject
                     , Orientation
+                    , Engine
+                    , Utils
 
     -- Modules included in this library but not exported.
     -- other-modules:  
@@ -123,3 +125,4 @@ test-suite LasersAndCrystals-test
                     , lens
                     , vector
                     , gloss
+                    , random

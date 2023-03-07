@@ -1,14 +1,21 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE ImportQualifiedPost #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# OPTIONS_GHC -fprof-auto-calls #-}
 
 -- An Orientation is point on the compass rose.
 module Orientation
   ( Orientation (..),
-    asDegrees,
-    asRadians,
-    asUnitPoint,
-    asSquarePoint,
+    toDegrees,
+    toRadians,
+    toUnitPoint,
+    toSquarePoint,
+    normalizeRadians,
+    inOriOf,
+    denormalize,
+    rotatePiOver2,
   )
 where
 
@@ -16,7 +23,11 @@ import Control.Lens
 import GHC.Float (asinDouble, asinFloat, double2Float)
 import GHC.Generics (Generic)
 import Graphics.Gloss (Point)
+import Graphics.Gloss.Data.Point.Arithmetic qualified as G
 import Relude.Container (Hashable)
+import Relude hiding (toList, filter, fromList, singleton, HashSet)
+import Text.Printf (printf)
+import Utils
 
 data Orientation
   = East
@@ -40,31 +51,8 @@ toDegrees SouthWest = 225
 toDegrees South = 270
 toDegrees SouthEast = 315
 
-fromDegrees :: Float -> Maybe Orientation
-fromDegrees f = fromDegrees' (round f)
-
-fromDegrees' :: Int -> Maybe Orientation
-fromDegrees' 0 = Just East
-fromDegrees' 45 = Just NorthEast
-fromDegrees' 90 = Just North
-fromDegrees' 135 = Just NorthWest
-fromDegrees' 180 = Just West
-fromDegrees' 225 = Just SouthWest
-fromDegrees' 270 = Just South
-fromDegrees' 315 = Just SouthEast
-fromDegrees' _ = Nothing
-
-asDegrees :: Prism' Float Orientation
-asDegrees = prism' toDegrees fromDegrees
-
 toRadians :: Orientation -> Float
 toRadians = (* (pi / 180)) . toDegrees
-
-fromRadians :: Float -> Maybe Orientation
-fromRadians = fromDegrees . (* (180 / pi))
-
-asRadians :: Prism' Float Orientation
-asRadians = prism' toRadians fromRadians
 
 toSquarePoint :: Orientation -> Point
 toSquarePoint East = (1, 0)
@@ -84,16 +72,30 @@ normalizePoint (x, y) = (x / magnitude, y / magnitude)
 toUnitPoint :: Orientation -> Point
 toUnitPoint = normalizePoint . toSquarePoint
 
-fromPoint :: Point -> Maybe Orientation
-fromPoint (x, y) =
-  if magnitude == 0
-    then Nothing
-    else fromRadians $ asinFloat (y / magnitude)
+segToAngle :: Point -> Point -> Float
+segToAngle (x1, y1) (x2, y2) = result
   where
-    magnitude = sqrt (x * x + y * y)
+    result = atan2 (y2 - y1) (x2 - x1)
 
-asUnitPoint :: Prism' Point Orientation
-asUnitPoint = prism' toUnitPoint fromPoint
+inOriOf :: Orientation -> Point -> Point -> Ordering
+inOriOf ori base canidate = result 
+  where
+    result 
+      | base == canidate = EQ
+      | abs angle < pi / 4 = LT
+      | abs angle < 3 * pi / 4 = EQ
+      | otherwise = GT
+    angle = normalizeRadians (segToAngle base canidate  - toRadians ori)
 
-asSquarePoint :: Prism' Point Orientation
-asSquarePoint = prism' toSquarePoint fromPoint
+-- Normalize an angle to be between -pi and pi
+normalizeRadians :: Float -> Float
+normalizeRadians angle
+  | angle < - pi = normalizeRadians (angle + 2 * pi)
+  | angle > pi = normalizeRadians (angle - 2 * pi)
+  | otherwise = angle
+
+denormalize :: Int16 -> Float
+denormalize x = fromIntegral x / fromIntegral (maxBound :: Int16) * 1000 -- 2000 is a little bit more then half a screen
+
+rotatePiOver2 :: Point -> Point
+rotatePiOver2 (x, y) = (-y, x)

@@ -58,3 +58,9 @@ isLens description theLens =
       property $ \(x : a) -> lensLaw1 (theLens :: Lens' a b) x
     it "satifies the second lens law" $ do
       property $ \(x : a) (y : b) -> lensLaw2 (theLens :: Lens' a b) x y
+
+(~=) :: Float -> Float -> Expectation
+a ~= b = 
+  if abs (a - b) < 0.001
+    then pure ()
+    else a `shouldBe` b
