@@ -49,10 +49,7 @@ extra-source-files: CHANGELOG.md
 
 library
     -- Modules exported by the library.
-    exposed-modules:  GameObject
-                    , Orientation
-                    , Engine
-                    , Utils
+    exposed-modules: Utils
 
     -- Modules included in this library but not exported.
     -- other-modules:  
@@ -112,9 +109,7 @@ test-suite LasersAndCrystals-test
     -- The entrypoint to the test suite.
     main-is:          Spec.hs
 
-    other-modules:    GameObjectSpec
-                    , OrientationSpec
-                    , TestUtils
+    other-modules:   TestUtils
 
     -- Test dependencies.
     build-depends:    base ^>=4.16.4.0
